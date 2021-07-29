@@ -7,7 +7,7 @@ import SideDrawer from "../../components/Navigator/SideDrawer/SideDrawer";
 
 class Layout extends Component {
   state = {
-    backDropClose: true,
+    backDropClose: false,
   };
   backDropCloseHandler = () => this.setState({ backDropClose: false });
 

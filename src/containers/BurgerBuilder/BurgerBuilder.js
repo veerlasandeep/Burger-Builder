@@ -5,6 +5,8 @@ import BuildControls from "../../components/Burger/BuildControls/BuildControls";
 import Aux from "../../hoc/Auxilary/Auxilary";
 import Modal from "../../components/UI/Modal/Modal";
 import OrderSummary from "../../components/Burger/OrderSummary/OrderSummary";
+import axios from "../../axios-orders";
+import Spinner from "../../components/UI/Spinner/Spinner";
 
 const Ingerdients_Cost = {
   salad: 0.4,
@@ -15,16 +17,22 @@ const Ingerdients_Cost = {
 
 class BurgerBuilder extends Component {
   state = {
-    ingredients: {
-      salad: 0,
-      meat: 0,
-      bacon: 0,
-      cheese: 0,
-    },
+    ingredients: null,
     totalPrice: 0,
     purchasable: false,
     orderSummaryClick: false,
+    spinLoader: false,
   };
+
+  componentDidMount() {
+    axios
+      .get(
+        "https://react-burger-a2989-default-rtdb.firebaseio.com/ingredients.json"
+      )
+      .then((response) => {
+        this.setState({ ingredients: response.data });
+      });
+  }
 
   oredrIngredients(ingredients) {
     const sum = Object.keys(ingredients)
@@ -81,7 +89,33 @@ class BurgerBuilder extends Component {
   };
 
   continueButtonHandler = () => {
-    alert("success");
+    /* this.setState({ spinLoader: true });
+    const order = {
+      ingredients: this.state.ingredients,
+      price: this.state.totalPrice.toFixed(2),
+      customer: {
+        name: "Sandeep",
+        country: "India",
+      },
+      summary: "Fastest",
+    };
+    axios
+      .post("/orders.json", order)
+      .then((response) => {
+        this.setState({ spinLoader: false, orderSummaryClick: false });
+      })
+      .catch((error) => {
+        this.setState({ spinLoader: false, orderSummaryClick: false });
+      }); */
+      const queryParam = [];
+      for(let i in this.state.ingredients){
+        queryParam.push(encodeURIComponent(i) + '=' +encodeURIComponent(this.state.ingredients[i]));
+      }
+      const queryString = queryParam.join('&');
+      this.props.history.push({
+        pathname : '/checkout',
+        search : '?'+queryString
+      });
   };
 
   render() {
@@ -93,28 +127,44 @@ class BurgerBuilder extends Component {
       disabledButton[key] = disabledButton[key] <= 0;
     }
 
+    let orderSummary = null;
+    let defaultIngredients = <Spinner />;
+    if (this.state.ingredients) {
+      defaultIngredients = (
+        <Aux>
+          <Burger ingredients={this.state.ingredients} />
+          <BuildControls
+            addedIngredients={this.addIngredientsListner}
+            deleteIngredients={this.removeIngredientListner}
+            disabledKey={disabledButton}
+            totaiPrice={this.state.totalPrice}
+            oredrIngredients={this.state.purchasable}
+            click={this.orderSummaryHandler}
+          />
+        </Aux>
+      );
+      orderSummary = (
+        <OrderSummary
+          ingredients={this.state.ingredients}
+          closeModel={this.closeModelHandler}
+          continueButton={this.continueButtonHandler}
+          price={this.state.totalPrice}
+        />
+      );
+    }
+    if (this.state.spinLoader) {
+      orderSummary = <Spinner />;
+    }
+
     return (
       <Aux>
         <Modal
           show={this.state.orderSummaryClick}
           closeModel={this.closeModelHandler}
         >
-          <OrderSummary
-            ingredients={this.state.ingredients}
-            closeModel={this.closeModelHandler}
-            continueButton={this.continueButtonHandler}
-            price={this.state.totalPrice}
-          />
+          {orderSummary}
         </Modal>
-        <Burger ingredients={this.state.ingredients} />
-        <BuildControls
-          addedIngredients={this.addIngredientsListner}
-          deleteIngredients={this.removeIngredientListner}
-          disabledKey={disabledButton}
-          totaiPrice={this.state.totalPrice}
-          oredrIngredients={this.state.purchasable}
-          click={this.orderSummaryHandler}
-        />
+        {defaultIngredients}
       </Aux>
     );
   }
